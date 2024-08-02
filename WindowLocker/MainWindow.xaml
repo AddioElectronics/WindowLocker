@@ -7,6 +7,13 @@
         mc:Ignorable="d"
         Title="Window Locker" Height="450" Width="800">
     <Window.Resources>
+        <Style x:Key="NumericalWindowProperty" TargetType="TextBox">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Text" Value="0"/>
+            <Setter Property="IsEnabled" Value="False"/>
+        </Style>
         <DataTemplate x:Key="LockedWindowTemplate" DataType="{x:Type local:LockedWindow}">
             <Border
                 x:Name="PART_BORDER"
@@ -65,14 +72,16 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
+        <!--Menu Bar-->
         <Menu Grid.ColumnSpan="2">
             <MenuItem Header="_File">
-                <MenuItem Header="_Open" Click="FindProcessButton_Click"/>
+                <MenuItem Header="_Select" Click="FindProcessButton_Click"/>
                 <Separator/>
                 <MenuItem Header="E_xit" Click="Exit_Click"/>
             </MenuItem>
         </Menu>
 
+        <!--Window Editor-->
         <Grid Grid.Row="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="30"/>
@@ -153,140 +162,68 @@ ClickMode="Press"/>
 
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="39*"/>
-                        <ColumnDefinition Width="2*"/>
-                        <ColumnDefinition Width="37*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Label Content="X" Grid.Column="0"/>
-                    <TextBox x:Name="XPosition"
-                             VerticalAlignment="Center"
-                             TextWrapping="Wrap"
-                             Text="0" 
-                             Grid.Column="1"
-                             TextChanged="WindowTextBox_TextChanged"
-                             LostFocus="WindowTextBox_LostFocus"
-                             KeyDown="WindowTextBox_KeyDown"
-                             Grid.ColumnSpan="2"/>
-                </Grid>
+                        <TextBox x:Name="XPosition" Grid.Column="1" Style="{StaticResource NumericalWindowProperty}"/>
+                    </Grid>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Label Content="Y" Grid.Column="0"/>
-                    <TextBox x:Name="YPosition"
-                             HorizontalAlignment="Stretch"
-                             VerticalAlignment="Center"
-                             TextWrapping="Wrap"
-                             Text="0" 
-                             Grid.Column="1"
-                             TextChanged="WindowTextBox_TextChanged"
-                             LostFocus="WindowTextBox_LostFocus"
-                             KeyDown="WindowTextBox_KeyDown">
-                    </TextBox>
-                </Grid>
+                        <TextBox x:Name="YPosition" Grid.Column="1" Style="{StaticResource NumericalWindowProperty}"/>
+                    </Grid>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Label Content="Width" Grid.Column="0"/>
-                    <TextBox x:Name="WindowWidth"
-                             HorizontalAlignment="Stretch"
-                             VerticalAlignment="Center"
-                             TextWrapping="Wrap"
-                             Text="0" 
-                             Grid.Column="1"
-                             TextChanged="WindowTextBox_TextChanged"
-                             LostFocus="WindowTextBox_LostFocus"
-                             KeyDown="WindowTextBox_KeyDown">
-                    </TextBox>
-                </Grid>
+                        <TextBox x:Name="WindowWidth" Grid.Column="1" Style="{StaticResource NumericalWindowProperty}"/>
+                    </Grid>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Label Content="Height" Grid.Column="0"/>
-                    <TextBox x:Name="WindowHeight"
-                             HorizontalAlignment="Stretch"
-                             VerticalAlignment="Center"
-                             TextWrapping="Wrap"
-                             Text="0" 
-                             Grid.Column="1"
-                             TextChanged="WindowTextBox_TextChanged"
-                             LostFocus="WindowTextBox_LostFocus"
-                             KeyDown="WindowTextBox_KeyDown">
-                    </TextBox>
-                </Grid>
+                        <TextBox x:Name="WindowHeight" Grid.Column="1" Style="{StaticResource NumericalWindowProperty}"/>
+                    </Grid>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Label Content="Left" Grid.Column="0"/>
-                    <TextBox x:Name="LeftTextBox"
-             HorizontalAlignment="Stretch"
-             VerticalAlignment="Center"
-             TextWrapping="Wrap"
-             Text="0" 
-             Grid.Column="1"
-             TextChanged="WindowTextBox_TextChanged"
-             LostFocus="WindowTextBox_LostFocus"
-             KeyDown="WindowTextBox_KeyDown">
-                    </TextBox>
-                </Grid>
+                        <TextBox x:Name="LeftTextBox" Grid.Column="1" Style="{StaticResource NumericalWindowProperty}"/>
+                    </Grid>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Label Content="Top" Grid.Column="0"/>
-                    <TextBox x:Name="TopTextBox"
-HorizontalAlignment="Stretch"
-VerticalAlignment="Center"
-TextWrapping="Wrap"
-Text="0" 
-Grid.Column="1"
-TextChanged="WindowTextBox_TextChanged"
-LostFocus="WindowTextBox_LostFocus"
-KeyDown="WindowTextBox_KeyDown">
-                    </TextBox>
-                </Grid>
+                        <TextBox x:Name="TopTextBox" Grid.Column="1" Style="{StaticResource NumericalWindowProperty}"/>
+                    </Grid>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Label Content="Right" Grid.Column="0"/>
-                    <TextBox x:Name="RightTextBox"
-HorizontalAlignment="Stretch"
-VerticalAlignment="Center"
-TextWrapping="Wrap"
-Text="0" 
-Grid.Column="1"
-TextChanged="WindowTextBox_TextChanged"
-LostFocus="WindowTextBox_LostFocus"
-KeyDown="WindowTextBox_KeyDown">
-                    </TextBox>
-                </Grid>
+                        <TextBox x:Name="RightTextBox" Grid.Column="1" Style="{StaticResource NumericalWindowProperty}"/>
+                    </Grid>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Label Content="Bottom" Grid.Column="0"/>
-                    <TextBox x:Name="BottomTextBox"
-HorizontalAlignment="Stretch"
-VerticalAlignment="Center"
-TextWrapping="Wrap"
-Text="0" 
-Grid.Column="1"
-TextChanged="WindowTextBox_TextChanged"
-LostFocus="WindowTextBox_LostFocus"
-KeyDown="WindowTextBox_KeyDown">
-                    </TextBox>
-                </Grid>
+                        <TextBox x:Name="BottomTextBox" Grid.Column="1" Style="{StaticResource NumericalWindowProperty}"/>
+                    </Grid>
             </StackPanel>
             </ScrollViewer>
             <Grid Grid.Row="3">
@@ -298,6 +235,7 @@ KeyDown="WindowTextBox_KeyDown">
             </Grid>
 
         </Grid>
+        
         <GridSplitter Grid.Row="1" Grid.Column="0" Width="3" HorizontalAlignment="Right" Panel.ZIndex="9999">
             <GridSplitter.Background>
                 <LinearGradientBrush EndPoint="1,0.5" StartPoint="0,0.5">
@@ -313,12 +251,13 @@ KeyDown="WindowTextBox_KeyDown">
                 </LinearGradientBrush>
             </GridSplitter.Background>
         </GridSplitter>
+        
+        <!--Window List-->
         <Grid Grid.Row="1" Grid.Column="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="30"/>
                 <RowDefinition Height="30"/>
-                <RowDefinition Height="105*"/>
-                <RowDefinition Height="251*"/>
+                <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
                 <Label Content="Windows"
                        FontWeight="Bold"

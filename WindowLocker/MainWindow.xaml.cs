@@ -8,6 +8,11 @@ using CheckBox = System.Windows.Controls.CheckBox;
 using TextBox = System.Windows.Controls.TextBox;
 using Timer = System.Timers.Timer;
 
+/* TODO:
+ * -Profiles
+ * -Docking areas with outline
+ * -Display bounds viewer
+*/
 namespace WindowLocker
 {
     /// <summary>
@@ -109,8 +114,9 @@ namespace WindowLocker
             AllowMinimizeCheckBox.IsChecked = lockedWindow.AllowMinimize;
 
             SetWindowControlEvents(false);
-            YPosition.Text = lockedWindow.Y.ToString();
+            SetWindowPropertiesEnabled(lockedWindow.Locked);
             XPosition.Text = lockedWindow.X.ToString();
+            YPosition.Text = lockedWindow.Y.ToString();
             WindowWidth.Text = lockedWindow.Width.ToString();
             WindowHeight.Text = lockedWindow.Height.ToString();
             LeftTextBox.Text = lockedWindow.Left.ToString();
@@ -118,6 +124,18 @@ namespace WindowLocker
             RightTextBox.Text = lockedWindow.Right.ToString();
             BottomTextBox.Text = lockedWindow.Bottom.ToString();
             SetWindowControlEvents(true);
+        }
+
+        private void SetWindowPropertiesEnabled(bool enabled)
+        {
+            XPosition.IsEnabled = enabled;
+            YPosition.IsEnabled = enabled;
+            WindowWidth.IsEnabled = enabled;
+            WindowHeight.IsEnabled = enabled;
+            LeftTextBox.IsEnabled = enabled;
+            TopTextBox.IsEnabled = enabled;
+            RightTextBox.IsEnabled = enabled;
+            BottomTextBox.IsEnabled = enabled;
         }
 
         private void SelectedWindow_WindowClosed(object? sender, EventArgs e)
@@ -221,22 +239,22 @@ namespace WindowLocker
                 else if (textBox == LeftTextBox)
                 {
                     SelectedWindow.Left = value;
-                    XPosition.Text = SelectedWindow.Left.ToString();
+                    LeftTextBox.Text = SelectedWindow.Left.ToString();
                 }
                 else if (textBox == TopTextBox)
                 {
                     SelectedWindow.Top = value;
-                    YPosition.Text = SelectedWindow.Top.ToString();
+                    TopTextBox.Text = SelectedWindow.Top.ToString();
                 }
                 else if (textBox == RightTextBox)
                 {
                     SelectedWindow.Right = value;
-                    XPosition.Text = SelectedWindow.Right.ToString();
+                    RightTextBox.Text = SelectedWindow.Right.ToString();
                 }
                 else if (textBox == BottomTextBox)
                 {
                     SelectedWindow.Bottom = value;
-                    YPosition.Text = SelectedWindow.Bottom.ToString();
+                    BottomTextBox.Text = SelectedWindow.Bottom.ToString();
                 }
             }
         }
@@ -285,12 +303,15 @@ namespace WindowLocker
 
             if (WindowLockedCheckBox.IsChecked!.Value)
             {
-                WindowLockedCheckBox.IsChecked = SelectedWindow.Locked = true;
+                SelectedWindow.Locked = true;
+                WindowLockedCheckBox.IsChecked = SelectedWindow.Locked;
             }
             else
             {
                 SelectedWindow.Locked = false;
             }
+
+            SetWindowPropertiesEnabled(SelectedWindow.Locked);
         }
 
         private void AllowMinimizeCheckBox_Click(object sender, RoutedEventArgs e)

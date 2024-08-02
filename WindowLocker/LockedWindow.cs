@@ -256,11 +256,11 @@ namespace WindowLocker
             get => _position.Right;
             set
             {
-                if (!IsInsideScreenBounds(value, Y))
-                {
-                    SystemSounds.Beep.Play();
-                    return;
-                }
+                //if (!IsInsideScreenBounds(value, Y))
+                //{
+                //    SystemSounds.Beep.Play();
+                //    return;
+                //}
 
                 if (_position.Right != value)
                 {
@@ -274,11 +274,11 @@ namespace WindowLocker
             get => _position.Bottom;
             set
             {
-                if (!IsInsideScreenBounds(X, value))
-                {
-                    SystemSounds.Beep.Play();
-                    return;
-                }
+                //if (!IsInsideScreenBounds(X, value))
+                //{
+                //    SystemSounds.Beep.Play();
+                //    return;
+                //}
 
                 if (_position.Bottom != value)
                 {
