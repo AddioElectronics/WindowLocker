@@ -30,30 +30,9 @@ namespace WindowLocker
 
         public bool IsReadOnly => false;
 
-        //private void RegisterWinEventHook()
-        //{
-        //    IntPtr hWinEventHook = SetWinEventHook(
-        //        EventType.MoveSizeStart,    // EventMin
-        //        EventType.MinimizeEnd,      // EventMax
-        //        IntPtr.Zero,                // hModWinEventProc
-        //        HandleWinEvent,             // pfnWinEventProc
-        //        0,                          // idProcess (0 means all processes)
-        //        0,                          // idThread (0 means all threads)
-        //        Win32.WINEVENT_OUTOFCONTEXT       // dwFlags
-        //);
-        //}
-
-        //private void HandleWinEvent(IntPtr hWinEventHook, EventType eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
-        //{
-        //    if (_windows.TryGetValue(hwnd, out var windowHandle))
-        //    {
-        //        windowHandle.HandleWinEvent(hWinEventHook, eventType, hwnd, idObject, idChild, dwEventThread, dwmsEventTime);
-        //    }
-        //}
-
         private void Timer_Elapsed(object? sender, ElapsedEventArgs e)
         {
-#warning SetWinEventHook crashing, using Timer for now.
+#warning Using Timer in replace of SetWinEventHook, as it was causing crashes. Seems to be a common issue when using with WPF applications.
             lock (_lock)
             {
                 foreach (var window in _windows.Values)

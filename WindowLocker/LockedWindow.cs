@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Linq;
 using System.Media;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Media3D;
@@ -15,6 +16,48 @@ using static WindowLocker.Win32;
 
 namespace WindowLocker
 {
+    public class LockedWindowPreset
+    {
+        public RECT rect;
+        public string processName;
+        public string windowTitle;
+        public string? filename;
+        public string? arguments;
+        public bool locked;
+        public bool allowMinimize;
+        public bool hideTitleBar;
+
+
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public LockedWindowPreset() { }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+
+
+        public LockedWindowPreset(RECT rect, string processName, string windowTitle, string? filename, string? arguments, bool locked, bool allowMinimize, bool hideTitleBar)
+        {
+            this.rect = rect;
+            this.processName = processName;
+            this.windowTitle = windowTitle;
+            this.filename = filename;
+            this.locked = locked;
+            this.allowMinimize = allowMinimize;
+            this.hideTitleBar = hideTitleBar;
+        }
+
+        public LockedWindowPreset(LockedWindow lockedWindow)
+            : this(lockedWindow.Position, lockedWindow.Process.ProcessName, lockedWindow.Title, lockedWindow.FileName, arguments: null, lockedWindow.Locked, lockedWindow.AllowMinimize, lockedWindow.HideTitleBar)
+        {
+            var argArray = ProcessUtility.GetProcessArgumentsArray((int)lockedWindow.Pid);
+
+            if (argArray != null && argArray.Length > 0 )
+            {
+                arguments = string.Join(' ', argArray.Skip(1));
+            }
+
+        }
+    }
+
+
     // TODO: Disable ability to move, minimize, or maximize
     // TODO: When settings rect, need to check if its in window bounds instead of min max.
     public class LockedWindow : IDisposable, INotifyPropertyChanged
@@ -45,8 +88,9 @@ namespace WindowLocker
         public event EventHandler? WindowClosed;
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        private readonly IntPtr _winRectEventHandle;
-        private readonly IntPtr _winDestroyEventHandle;
+        //private readonly IntPtr _winRectEventHandle;
+        //private readonly IntPtr _winDestroyEventHandle;
+        private readonly IntPtr _windowStyle;
 
         private RECT _position;
         private bool _locked;
@@ -55,7 +99,6 @@ namespace WindowLocker
         private bool _isSelected;
         private bool _isConsole;
         private bool disposedValue;
-        private IntPtr _windowStyle;
 
         public LockedWindow(IntPtr hWnd)
         {
@@ -79,9 +122,13 @@ namespace WindowLocker
             // TODO: Does not work for all windows when Pid is passed, 0 crashes. Using timer for now.
             //RegisterWinEventHooks(out _winRectEventHandle, out _winDestroyEventHandle);
 
+
             CapturePosition();
             _windowStyle = Win32.GetWindowLongPtr(hWnd, GWL.STYLE);
             PropertyChanged += LockedWindow_PropertyChanged;
+
+            Process = Process.GetProcessById((int)this.Pid);
+            FileName = Win32.TryGetProcessFileName(this.Pid);
         }
 
         public LockedWindow(Process process)
@@ -101,6 +148,9 @@ namespace WindowLocker
         public IntPtr HWND { get; }
         public uint Pid { get; }
         public string Title { get; }
+
+        public Process Process { get; }
+        public string? FileName { get; }
 
         public bool IsSelected
         {
@@ -331,6 +381,23 @@ namespace WindowLocker
 
         #region Functions
 
+
+        public void ApplyPreset(LockedWindowPreset preset)
+        {
+            Debug.Assert(preset != null);
+            Debug.Assert(preset.processName == Process.ProcessName);
+
+            bool isLocked = Locked;
+
+            Locked = true;
+            Position = preset.rect;
+            AllowMinimize = preset.allowMinimize;
+            HideTitleBar = preset.hideTitleBar;
+
+            Locked = isLocked;
+        }
+
+
         private void LockedWindow_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (Locked)
@@ -386,7 +453,7 @@ namespace WindowLocker
             return Screen.AllScreens.Any(screen => screen.Bounds.Contains(x, y));
         }
 
-        private bool CapturePosition()
+        public bool CapturePosition()
         {
             if (Win32.IsIconic(this.HWND))
             {
@@ -484,11 +551,13 @@ namespace WindowLocker
 
                 }
 
-                if (_winRectEventHandle != IntPtr.Zero)
-                    Win32.UnhookWinEvent(_winRectEventHandle);
+                Process.Dispose();
 
-                if (_winDestroyEventHandle != IntPtr.Zero)
-                    Win32.UnhookWinEvent(_winDestroyEventHandle);
+                //if (_winRectEventHandle != IntPtr.Zero)
+                //    Win32.UnhookWinEvent(_winRectEventHandle);
+
+                //if (_winDestroyEventHandle != IntPtr.Zero)
+                //    Win32.UnhookWinEvent(_winDestroyEventHandle);
                 
                 disposedValue = true;
             }

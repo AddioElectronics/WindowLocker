@@ -1,15 +1,23 @@
-﻿using System.Collections.ObjectModel;
+﻿using Microsoft.Win32;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO;
+using System.Management;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Forms;
 using System.Windows.Input;
 using WindowLocker.Extensions;
 using static WindowLocker.Win32;
 using CheckBox = System.Windows.Controls.CheckBox;
+using MessageBox = System.Windows.MessageBox;
+using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
+using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 using TextBox = System.Windows.Controls.TextBox;
 using Timer = System.Timers.Timer;
 
 /* TODO:
- * -Profiles
  * -Docking areas with outline
  * -Display bounds viewer
 */
@@ -138,6 +146,57 @@ namespace WindowLocker
             BottomTextBox.IsEnabled = enabled;
         }
 
+        private void UpdateWindowRect(TextBox textBox)
+        {
+            if (SelectedWindow != null)
+            {
+                int value = int.Parse(textBox.Text);
+
+                if (textBox == XPosition)
+                {
+                    SelectedWindow.X = value;
+                    XPosition.Text = SelectedWindow.X.ToString();
+                }
+                else if (textBox == YPosition)
+                {
+                    SelectedWindow.Y = value;
+                    YPosition.Text = SelectedWindow.Y.ToString();
+                }
+                else if (textBox == WindowWidth)
+                {
+                    SelectedWindow.Width = value;
+                    WindowWidth.Text = SelectedWindow.Width.ToString();
+                }
+                else if (textBox == WindowHeight)
+                {
+                    SelectedWindow.Height = value;
+                    WindowHeight.Text = SelectedWindow.Height.ToString();
+                }
+                else if (textBox == LeftTextBox)
+                {
+                    SelectedWindow.Left = value;
+                    LeftTextBox.Text = SelectedWindow.Left.ToString();
+                }
+                else if (textBox == TopTextBox)
+                {
+                    SelectedWindow.Top = value;
+                    TopTextBox.Text = SelectedWindow.Top.ToString();
+                }
+                else if (textBox == RightTextBox)
+                {
+                    SelectedWindow.Right = value;
+                    RightTextBox.Text = SelectedWindow.Right.ToString();
+                }
+                else if (textBox == BottomTextBox)
+                {
+                    SelectedWindow.Bottom = value;
+                    BottomTextBox.Text = SelectedWindow.Bottom.ToString();
+                }
+            }
+        }
+
+        #region Event Handlers
+
         private void SelectedWindow_WindowClosed(object? sender, EventArgs e)
         {
             Dispatcher.Invoke(() =>
@@ -191,7 +250,7 @@ namespace WindowLocker
         private void FindProcessButton_Click(object sender, RoutedEventArgs e)
         {
             Xorrupt.Windows.Forms.OpenProcessDialog openProcessDialog = new Xorrupt.Windows.Forms.OpenProcessDialog(Xorrupt.Windows.Forms.OpenProcessDialog.ListTypeFlag.Windows);
-            if (openProcessDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK )
+            if (openProcessDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
                 LockedWindow lockedWindow = new LockedWindow(openProcessDialog.Process!);
                 AddLockedWindow(lockedWindow);
@@ -210,56 +269,21 @@ namespace WindowLocker
             ClearWindow();
         }
 
-        private void UpdateWindowRect(TextBox textBox)
+        private void FileMenu_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (SelectedWindow != null)
+            if (LockedWindows.Count != 0)
             {
-                int value = int.Parse(textBox.Text);
-
-                if (textBox == XPosition)
-                {
-                    SelectedWindow.X = value;
-                    XPosition.Text = SelectedWindow.X.ToString();
-                }
-                else if (textBox == YPosition)
-                {
-                    SelectedWindow.Y = value;
-                    YPosition.Text = SelectedWindow.Y.ToString();
-                }
-                else if (textBox == WindowWidth)
-                {
-                    SelectedWindow.Width = value;
-                    WindowWidth.Text = SelectedWindow.Width.ToString();
-                }
-                else if (textBox == WindowHeight)
-                {
-                    SelectedWindow.Height = value;
-                    WindowHeight.Text = SelectedWindow.Height.ToString();
-                }
-                else if (textBox == LeftTextBox)
-                {
-                    SelectedWindow.Left = value;
-                    LeftTextBox.Text = SelectedWindow.Left.ToString();
-                }
-                else if (textBox == TopTextBox)
-                {
-                    SelectedWindow.Top = value;
-                    TopTextBox.Text = SelectedWindow.Top.ToString();
-                }
-                else if (textBox == RightTextBox)
-                {
-                    SelectedWindow.Right = value;
-                    RightTextBox.Text = SelectedWindow.Right.ToString();
-                }
-                else if (textBox == BottomTextBox)
-                {
-                    SelectedWindow.Bottom = value;
-                    BottomTextBox.Text = SelectedWindow.Bottom.ToString();
-                }
+                OpenPresetButton.IsEnabled = true;
+                //OpenPresetAutoButton.IsEnabled = true;
+                SaveAsPresetButton.IsEnabled = true;
+            }
+            else
+            {
+                OpenPresetButton.IsEnabled = false;
+                //OpenPresetAutoButton.IsEnabled = false;
+                SaveAsPresetButton.IsEnabled = false;
             }
         }
-
-        #region Event Handlers
 
         private void WindowTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
@@ -366,6 +390,188 @@ namespace WindowLocker
             Close();
         }
 
-        #endregion
+
+        #endregion Event Handlers
+
+
+        #region Preset
+
+        private void ApplyPresetsSelect(LockedWindowPreset[] presets)
+        {
+            PresetApplier applier = new PresetApplier(presets, LockedWindows);
+            applier.ShowDialog();
+        }
+
+        private void ApplyPreset(LockedWindow wnd, LockedWindowPreset preset)
+        {
+            Debug.Assert(wnd != null);
+            Debug.Assert(preset != null);
+            wnd.ApplyPreset(preset);
+        }
+
+        private int ApplyPresetsAuto(LockedWindowPreset[] presets)
+        {
+            List<LockedWindow> applied = new List<LockedWindow>();
+
+            foreach (var preset in presets)
+            {
+                try
+                {
+                    var lockedWindow = LockedWindows.FirstOrDefault(x => !applied.Contains(x) && x.Process.ProcessName == preset.processName && x.Title == preset.windowTitle);
+
+                    if (lockedWindow == null)
+                    {
+                        if (preset.filename != null && File.Exists(preset.filename))
+                        {
+                            Process? proc;
+
+                            if (preset.arguments.NullOrEmpty())
+                            {
+                                proc = Process.Start(preset.filename);
+                            }
+                            else
+                            {
+                                proc = new Process();
+                                proc.StartInfo.FileName = preset.filename/*"cmd.exe"*/;
+                                proc.StartInfo.Arguments = preset.arguments;
+                                proc.StartInfo.UseShellExecute = false;
+                                proc.StartInfo.RedirectStandardOutput = true;
+                                proc.StartInfo.RedirectStandardError = true;
+                                proc.Start();
+                            }
+
+                            if (proc != null)
+                            {
+                                if (proc.MainWindowHandle == IntPtr.Zero)
+                                {
+                                    throw new NullReferenceException($"Main window handle null for process '{proc.ProcessName}'");
+                                }
+
+                                LockedWindow newWindow = new LockedWindow(proc.MainWindowHandle);
+                                AddLockedWindow(newWindow);
+                                ApplyPreset(newWindow, preset);
+                                applied.Add(newWindow);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        ApplyPreset(lockedWindow, preset);
+                        applied.Add(lockedWindow);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"An error occured while applying a preset to process '{preset.processName}': '{ex.Message}'");
+                }
+            }
+            return applied.Count;
+        }
+
+        private void OpenPreset(bool auto)
+        {
+            try
+            {
+                OpenFileDialog fileDialog = new OpenFileDialog();
+                fileDialog.Filter = "JSON Preset (*.wndlock)|*.wndlock|All files (*.*)|*.*";
+
+                var result = fileDialog.ShowDialog();
+
+                if (result != null && result.Value)
+                {
+                    string filename = fileDialog.FileName;
+                    string json = File.ReadAllText(filename);
+
+                    LockedWindowPreset[]? presets = JsonSerializer.Deserialize<LockedWindowPreset[]>(json, new JsonSerializerOptions { IncludeFields = true });
+
+                    if (presets == null)
+                    {
+                        throw new JsonException("Unknown error");
+                    }
+
+                    if (auto)
+                    {
+                        int applied = ApplyPresetsAuto(presets);
+                        MessageBox.Show($"{applied}/{presets.Length} presets were successfully applied.");
+                    }
+                    else
+                    {
+                        ApplyPresetsSelect(presets);
+                    }
+                }
+
+            }
+            catch (JsonException ex)
+            {
+                throwJsonException(ex);
+            }
+            catch (NotSupportedException ex)
+            {
+                throwJsonException(ex);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error opening file: {ex.Message}", "Failed to Open");
+            }
+
+            void throwJsonException(Exception ex)
+            {
+                MessageBox.Show($"Failed to deserialize data: {(ex).Message}", "Deserialization Failed");
+            }
+        }
+
+        private void OpenPresetAuto_Click(object sender, RoutedEventArgs e)
+        {
+            OpenPreset(auto: true);
+        }
+
+        private void OpenPreset_Click(object sender, RoutedEventArgs e)
+        {
+            OpenPreset(auto: false);
+        }
+
+        private void SaveAs_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var data = LockedWindows.Select(x =>
+                {
+                    x.CapturePosition();
+                    return new LockedWindowPreset(x);
+                });
+
+                var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { IncludeFields = true, WriteIndented = true });
+
+                SaveFileDialog fileDialog = new SaveFileDialog();
+                fileDialog.Filter = "JSON Preset (*.wndlock)|*.wndlock|All files (*.*)|*.*";
+
+                var result = fileDialog.ShowDialog();
+
+                if (result != null && result.Value)
+                {
+                    string filename = fileDialog.FileName;
+                    File.WriteAllText(filename, json);
+                }
+            }
+            catch (JsonException ex)
+            {
+                throwJsonException(ex);
+            }
+            catch (NotSupportedException ex)
+            {
+                throwJsonException(ex);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error saving file: {ex.Message}", "Failed to Save");
+            }
+
+            void throwJsonException(Exception ex)
+            {
+                MessageBox.Show($"Failed to serialize data: {(ex).Message}", "Serialization Failed");
+            }
+        }
+
+        #endregion Preset
     }
 }

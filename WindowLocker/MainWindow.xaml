@@ -74,10 +74,14 @@
 
         <!--Menu Bar-->
         <Menu Grid.ColumnSpan="2">
-            <MenuItem Header="_File">
-                <MenuItem Header="_Select" Click="FindProcessButton_Click"/>
+            <MenuItem Header="File" PreviewMouseDown="FileMenu_PreviewMouseDown">
+                <MenuItem Header="Select Process From List" Click="FindProcessButton_Click"/>
                 <Separator/>
-                <MenuItem Header="E_xit" Click="Exit_Click"/>
+                <MenuItem x:Name="OpenPresetButton" Header="Open Preset" Click="OpenPreset_Click"/>
+                <MenuItem x:Name="OpenPresetAutoButton" Header="Open Preset Auto" Click="OpenPresetAuto_Click"/>
+                <MenuItem x:Name="SaveAsPresetButton" Header="Save As" Click="SaveAs_Click"/>
+                <Separator/>
+                <MenuItem Header="Exit" Click="Exit_Click"/>
             </MenuItem>
         </Menu>
 

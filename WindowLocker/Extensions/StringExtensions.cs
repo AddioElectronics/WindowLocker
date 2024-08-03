@@ -8,6 +8,12 @@ namespace WindowLocker.Extensions
 {
     public static class StringExtensions
     {
+
+        public static bool NullOrEmpty(this string? s)
+        {
+            return s == null || s.Length == 0;
+        }
+
         public static string RemoveInvalidCharacters(this string str, Predicate<char> validator)
         {
             StringBuilder sb = new StringBuilder();

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Management;
 using System.Runtime.InteropServices;
 
 namespace WindowLocker.Utility
@@ -14,6 +15,39 @@ namespace WindowLocker.Utility
                 return Process.GetProcessById((int)pid);
             }
             catch { return null; }
+        }
+
+        public static string[]? GetProcessArgumentsArray(int pid)
+        {
+            string? arguments = GetProcessArguments(pid);
+
+            if (arguments == null)
+            {
+                return null;
+            }
+
+            return Win32.SplitArgs(arguments);
+        }
+
+        public static string? GetProcessArguments(int pid)
+        {
+            string? arguments = null;
+            string query = $"SELECT CommandLine FROM Win32_Process WHERE ProcessId = {pid}";
+            using (ManagementObjectSearcher searcher = new ManagementObjectSearcher(query))
+            {
+                foreach (ManagementObject obj in searcher.Get())
+                {
+                    string? arg = obj["CommandLine"].ToString();
+
+                    if (arg != null)
+                    {
+                        arguments = arg;
+                        break;
+                    }
+                }
+            }
+
+            return arguments;
         }
 
         /// <summary>

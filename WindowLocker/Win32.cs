@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Runtime.Remoting;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -94,6 +96,8 @@ namespace WindowLocker
         public static readonly IntPtr HWND_TOP = IntPtr.Zero;
         public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
 
+        const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+
         /// <summary>
         /// Callback delegate for the <see cref="SetWinEventHook"/> function.
         /// </summary>
@@ -163,9 +167,6 @@ namespace WindowLocker
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         public static extern int GetWindowTextLength(IntPtr hWnd);
 
-        [DllImport("user32.dll")]
-        public static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
-
         public static string GetWindowTitle(IntPtr hWnd)
         {
             // Get the length of the window text
@@ -186,6 +187,9 @@ namespace WindowLocker
 
             return string.Empty;
         }
+
+        [DllImport("user32.dll")]
+        public static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
 
         [DllImport("user32.dll", SetLastError = true)]
         public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
@@ -215,8 +219,82 @@ namespace WindowLocker
             return GetParent(hWnd) == IntPtr.Zero; // Example: No parent could be a console window
         }
 
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern bool QueryFullProcessImageName(IntPtr hProcess, uint dwFlags, StringBuilder lpExeName, ref uint lpdwSize);
+
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr OpenProcess(uint processAccess, bool bInheritHandle, uint processId);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool CloseHandle(IntPtr hObject);
+
+        [DllImport("shell32.dll", SetLastError = true)]
+        public static extern IntPtr CommandLineToArgvW([MarshalAs(UnmanagedType.LPWStr)] string lpCmdLine, out int pNumArgs);
+
+        public static string[] SplitArgs(string commandLine)
+        {
+            IntPtr argv = CommandLineToArgvW(commandLine, out int argc);
+            if (argv == IntPtr.Zero)
+            {
+                throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+            }
+
+            try
+            {
+                string[] args = new string[argc];
+                for (int i = 0; i < args.Length; i++)
+                {
+                    IntPtr p = Marshal.ReadIntPtr(argv, i * IntPtr.Size);
+                    args[i] = Marshal.PtrToStringUni(p)!;
+                }
+                return args;
+            }
+            finally
+            {
+                LocalFree(argv);
+            }
+        }
+
         [DllImport("kernel32.dll")]
-        public static extern bool QueryFullProcessImageName(IntPtr hProcess, uint dwFlags, System.Text.StringBuilder lpExeName, ref uint lpdwSize);
+        public static extern IntPtr LocalFree(IntPtr hMem);
+
+        public static string? TryGetProcessFileName(uint pid)
+        {
+            IntPtr hProcess = IntPtr.Zero;
+            try
+            {
+                // Open the process to query information
+                hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+
+                if (hProcess == IntPtr.Zero)
+                {
+                    return null;
+                }
+
+                // Query the full process image name
+                StringBuilder exePath = new StringBuilder(1024);
+                uint size = (uint)exePath.Capacity;
+                if (QueryFullProcessImageName(hProcess, 0, exePath, ref size))
+                {
+                    return exePath.ToString();
+                }
+
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+            finally
+            {
+                if (hProcess != IntPtr.Zero)
+                {
+                    CloseHandle(hProcess);
+                }
+            }
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -247,6 +325,23 @@ namespace WindowLocker
                 && this.Top == other.Top
                 && this.Right == other.Right
                 && this.Bottom == other.Bottom;
+        }
+
+        public override bool Equals([NotNullWhen(true)] object? obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (obj is RECT rect)
+            {
+                return Equals(rect);
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return (Left.GetHashCode() ^ Top.GetHashCode())
+                * (Right.GetHashCode() ^ Bottom.GetHashCode());
         }
 
         public static bool operator ==(RECT left, RECT right)
